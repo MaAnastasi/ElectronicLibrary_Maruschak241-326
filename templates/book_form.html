@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{% if is_edit %}Редактирование{% else %}Добавление{% endif %} книги</h2>
+<form method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label class="form-label">Название</label>
+        <input type="text" name="title" class="form-control" value="{{ data.title if data else (book.title if book else '') }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Автор</label>
+        <input type="text" name="author" class="form-control" value="{{ data.author if data else (book.author if book else '') }}" required>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Год</label>
+            <input type="number" name="year" class="form-control" value="{{ data.year if data else (book.year if book else '') }}" required>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Издательство</label>
+            <input type="text" name="publisher" class="form-control" value="{{ data.publisher if data else (book.publisher if book else '') }}" required>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Объём (страниц)</label>
+        <input type="number" name="pages" class="form-control" value="{{ data.pages if data else (book.pages if book else '') }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Жанры</label>
+        <select name="genres" class="form-select" multiple size="5" required>
+            {% for genre in genres %}
+                <option value="{{ genre.id }}" 
+                    {% if data and genre.id|string in data.get('genres', []) %}selected{% endif %}
+                    {% if not data and book and genre in book.genres %}selected{% endif %}>
+                    {{ genre.name }}
+                </option>
+            {% endfor %}
+        </select>
+        <small class="text-muted">Удерживайте Ctrl для выбора нескольких</small>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Описание (поддерживается Markdown)</label>
+        <textarea name="description" id="descEditor" class="form-control">{{ data.description if data else (book.description if book else '') }}</textarea>
+    </div>
+    {% if not is_edit %}
+    <div class="mb-3">
+        <label class="form-label">Обложка</label>
+        <input type="file" name="cover" class="form-control" accept="image/*" required>
+    </div>
+    {% endif %}
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+    const easyMDE = new EasyMDE({ element: document.getElementById('descEditor') });
+</script>
+{% endblock %}

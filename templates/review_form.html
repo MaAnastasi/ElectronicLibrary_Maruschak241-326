@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Рецензия на "{{ book.title }}"</h2>
+<form method="POST" id="reviewForm">
+    <div class="mb-3">
+        <label class="form-label">Оценка</label>
+        <select name="rating" class="form-select" required>
+            <option value="5">5 – отлично</option>
+            <option value="4">4 – хорошо</option>
+            <option value="3">3 – удовлетворительно</option>
+            <option value="2">2 – неудовлетворительно</option>
+            <option value="1">1 – плохо</option>
+            <option value="0">0 – ужасно</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Текст рецензии (Markdown)</label>
+        <!-- Атрибут required УБРАН, чтобы браузер не блокировал скрытое поле -->
+        <textarea name="text" id="reviewEditor" class="form-control" rows="5"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a href="{{ url_for('view_book', book_id=book.id) }}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Инициализируем редактор
+    const reviewEditor = new EasyMDE({ element: document.getElementById('reviewEditor') });
+    
+    // Магия: перед отправкой формы принудительно копируем текст из EasyMDE в скрытый textarea
+    document.getElementById('reviewForm').addEventListener('submit', function() {
+        reviewEditor.toTextArea();
+    });
+</script>
+{% endblock %}

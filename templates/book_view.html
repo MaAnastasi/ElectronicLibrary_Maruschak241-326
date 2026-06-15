@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        {% if book.cover %}
+            <img src="{{ url_for('static', filename='uploads/' + book.cover.filename) }}" class="img-fluid rounded" alt="Обложка">
+        {% else %}
+            <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="height: 400px;">Нет обложки</div>
+        {% endif %}
+    </div>
+    <div class="col-md-8">
+        <h2>{{ book.title }}</h2>
+        <p class="text-muted">Автор: {{ book.author }} | Год: {{ book.year }} | Издательство: {{ book.publisher }} | Страниц: {{ book.pages }}</p>
+        <p>Жанры: {% for g in book.genres %}<span class="badge bg-primary">{{ g.name }}</span> {% endfor %}</p>
+        <hr>
+        <div class="markdown-body">
+            {{ description_html | safe }}
+        </div>
+    </div>
+</div>
+
+<hr class="my-5">
+<h3>Рецензии</h3>
+
+{% if current_user.is_authenticated and not user_review %}
+    <a href="{{ url_for('add_review', book_id=book.id) }}" class="btn btn-primary mb-3">Написать рецензию</a>
+{% elif user_review %}
+    <div class="card mb-3 bg-light">
+        <div class="card-body">
+            <h6 class="card-subtitle mb-2 text-muted">Ваша рецензия (Оценка: {{ user_review.rating }}/5)</h6>
+            <p class="card-text">{{ user_review.text | replace('\n', '<br>') | safe }}</p>
+        </div>
+    </div>
+{% endif %}
+
+{% for review in book.reviews %}
+    <div class="card mb-2">
+        <div class="card-body">
+            <h6 class="card-title">{{ review.user.fio }} <span class="badge bg-warning text-dark">{{ review.rating }}/5</span> <small class="text-muted">{{ review.created_at.strftime('%d.%m.%Y') }}</small></h6>
+            <p class="card-text">{{ review.text | replace('\n', '<br>') | safe }}</p>
+        </div>
+    </div>
+{% else %}
+    <p class="text-muted">Рецензий пока нет.</p>
+{% endfor %}
+{% endblock %}

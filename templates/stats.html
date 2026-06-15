@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Статистика системы</h2>
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'log' %}active{% endif %}" href="{{ url_for('stats', tab='log') }}">Журнал действий пользователей</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'views' %}active{% endif %}" href="{{ url_for('stats', tab='views') }}">Статистика просмотра книг</a>
+    </li>
+</ul>
+
+{% if tab == 'log' %}
+    <div class="d-flex justify-content-between mb-3">
+        <h4>Журнал действий</h4>
+        <a href="{{ url_for('export_csv', export_type='log') }}" class="btn btn-success">Экспорт в CSV</a>
+    </div>
+    <table class="table table-striped">
+        <thead><tr><th>№</th><th>Пользователь</th><th>Книга</th><th>Дата и время</th></tr></thead>
+        <tbody>
+            {% for v, u, b in log_pagination.items %}
+            <tr>
+                <td>{{ (log_pagination.page - 1) * 10 + loop.index }}</td>
+                <td>{{ u.fio if u else 'Неаутентифицированный пользователь' }}</td>
+                <td>{{ b.title }}</td>
+                <td>{{ v.visited_at.strftime('%d.%m.%Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <!-- Пагинация журнала (упрощенная) -->
+    <nav>
+        <ul class="pagination">
+            {% if log_pagination.has_prev %}<li class="page-item"><a class="page-link" href="{{ url_for('stats', tab='log', page=log_pagination.prev_num) }}">Назад</a></li>{% endif %}
+            {% if log_pagination.has_next %}<li class="page-item"><a class="page-link" href="{{ url_for('stats', tab='log', page=log_pagination.next_num) }}">Вперед</a></li>{% endif %}
+        </ul>
+    </nav>
+
+{% elif tab == 'views' %}
+    <div class="d-flex justify-content-between mb-3">
+        <h4>Статистика просмотров</h4>
+        <a href="{{ url_for('export_csv', export_type='views') }}" class="btn btn-success">Экспорт в CSV</a>
+    </div>
+    
+    <form method="GET" class="row g-3 mb-4 align-items-end">
+        <input type="hidden" name="tab" value="views">
+        <div class="col-auto">
+            <label class="form-label">Дата от</label>
+            <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+        </div>
+        <div class="col-auto">
+            <label class="form-label">Дата до</label>
+            <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Применить</button>
+        </div>
+    </form>
+
+    <table class="table table-striped">
+        <thead><tr><th>№</th><th>Книга</th><th>Количество просмотров</th></tr></thead>
+        <tbody>
+            {% for b, count in stats_pagination.items %}
+            <tr>
+                <td>{{ (stats_pagination.page - 1) * 10 + loop.index }}</td>
+                <td>{{ b.title }}</td>
+                <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <nav>
+        <ul class="pagination">
+            {% if stats_pagination.has_prev %}<li class="page-item"><a class="page-link" href="{{ url_for('stats', tab='views', page=stats_pagination.prev_num, date_from=date_from, date_to=date_to) }}">Назад</a></li>{% endif %}
+            {% if stats_pagination.has_next %}<li class="page-item"><a class="page-link" href="{{ url_for('stats', tab='views', page=stats_pagination.next_num, date_from=date_from, date_to=date_to) }}">Вперед</a></li>{% endif %}
+        </ul>
+    </nav>
+{% endif %}
+{% endblock %}
