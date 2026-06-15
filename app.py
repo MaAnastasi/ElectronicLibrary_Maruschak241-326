@@ -135,7 +135,6 @@ def calculate_md5(file_path):
     return hash_md5.hexdigest()
 
 def sanitize_html(text):
-    # Преобразуем frozenset в list перед сложением
     allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + ['p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'strong', 'em', 'a']
     return bleach.clean(text, tags=allowed_tags, attributes={'a': ['href', 'title']})
 
@@ -145,7 +144,6 @@ def index():
     page = request.args.get('page', 1, type=int)
     pagination = Book.query.order_by(Book.year.desc()).paginate(page=page, per_page=10, error_out=False)
     
-    # Вариант 4: Популярные книги (за последние 3 месяца)
     three_months_ago = datetime.datetime.utcnow() - datetime.timedelta(days=90)
     popular_books = db.session.query(Book, db.func.count(Visit.id).label('visit_count'))\
         .join(Visit, Book.id == Visit.book_id)\
@@ -154,7 +152,6 @@ def index():
         .order_by(db.desc('visit_count'))\
         .limit(5).all()
 
-    # Вариант 4: Недавно просмотренные
     recent_visits = []
     if current_user.is_authenticated:
         recent_visits = Visit.query.filter_by(user_id=current_user.id)\
@@ -195,7 +192,6 @@ def add_book():
     genres = Genre.query.all()
     if request.method == 'POST':
         try:
-            # 1. Сохраняем книгу, чтобы получить ID
             desc_raw = request.form.get('description')
             new_book = Book(
                 title=request.form.get('title'),
@@ -206,17 +202,14 @@ def add_book():
                 pages=int(request.form.get('pages'))
             )
             db.session.add(new_book)
-            db.session.flush() # Получаем new_book.id, но не коммитим
+            db.session.flush()
 
-            # 2. Обработка жанров
             genre_ids = request.form.getlist('genres')
             for gid in genre_ids:
                 new_book.genres.append(Genre.query.get(gid))
 
-            # 3. Обработка обложки
             cover_file = request.files.get('cover')
             if cover_file and cover_file.filename != '':
-                # Сохраняем временно для расчета хэша
                 temp_filename = secure_filename(cover_file.filename)
                 temp_path = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_' + temp_filename)
                 cover_file.save(temp_path)
@@ -245,7 +238,6 @@ def add_book():
             
         except Exception as e:
             db.session.rollback()
-            # ВАЖНО: Выводим реальную ошибку в консоль и на экран
             print(f"!!! ОШИБКА ПРИ СОХРАНЕНИИ КНИГИ: {e}") 
             flash(f'При сохранении данных возникла ошибка: {e}', 'danger')
             
@@ -259,8 +251,7 @@ def add_book():
                 'genres': request.form.getlist('genres')
             }
             return render_template('book_form.html', genres=genres, is_edit=False, data=form_data, book=None)
-            
-    # При обычном GET-запросе передаем пустые значения
+
     return render_template('book_form.html', genres=genres, is_edit=False, data=None, book=None)
 
 @app.route('/book/<int:book_id>/delete', methods=['POST'])
@@ -268,7 +259,7 @@ def add_book():
 def delete_book(book_id):
     book = Book.query.get_or_404(book_id)
     try:
-        # Удаляем файл обложки, если он есть и не используется другими книгами (по ТЗ удаляем файл удаляемой книги)
+
         if book.cover:
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], book.cover.filename)
             if os.path.exists(file_path):
@@ -286,7 +277,6 @@ def delete_book(book_id):
 def view_book(book_id):
     book = Book.query.get_or_404(book_id)
     
-    # Вариант 4: Учет посещений (макс 10 в день на пользователя/сессию)
     today_start = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + datetime.timedelta(days=1)
     
@@ -305,12 +295,10 @@ def view_book(book_id):
         db.session.add(new_visit)
         db.session.commit()
 
-    # Проверка, оставлял ли пользователь рецензию
     user_review = None
     if current_user.is_authenticated:
         user_review = Review.query.filter_by(book_id=book_id, user_id=current_user.id).first()
 
-    # Преобразование Markdown в HTML для отображения
     description_html = markdown.markdown(book.description)
     
     return render_template('book_view.html', book=book, description_html=description_html, user_review=user_review)
@@ -370,32 +358,29 @@ def add_review(book_id):
             
     return render_template('review_form.html', book=book)
 
-# --- ВАРИАНТ 4: СТАТИСТИКА ---
+# --- СТАТИСТИКА ---
 @app.route('/stats')
 @require_role('admin')
 def stats():
     tab = request.args.get('tab', 'log')
     page = request.args.get('page', 1, type=int)
     
-    # Журнал действий
     log_pagination = db.session.query(Visit, User, Book)\
         .outerjoin(User, Visit.user_id == User.id)\
         .join(Book, Visit.book_id == Book.id)\
         .order_by(Visit.visited_at.desc())\
         .paginate(page=page, per_page=10, error_out=False)
         
-    # Статистика просмотров (только аутентифицированные)
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
     
     query = db.session.query(Book, db.func.count(Visit.id).label('views'))\
         .join(Visit, Book.id == Visit.book_id)\
-        .filter(Visit.user_id.isnot(None)) # Только авторизованные
+        .filter(Visit.user_id.isnot(None))
         
     if date_from:
         query = query.filter(Visit.visited_at >= datetime.datetime.strptime(date_from, '%Y-%m-%d'))
     if date_to:
-        # Добавляем 1 день, чтобы включить весь последний день
         dt_to = datetime.datetime.strptime(date_to, '%Y-%m-%d') + datetime.timedelta(days=1)
         query = query.filter(Visit.visited_at < dt_to)
         
@@ -431,7 +416,7 @@ def export_csv(export_type):
 
     output = si.getvalue()
     return send_file(
-        io.BytesIO(output.encode('utf-8-sig')), # utf-8-sig для корректного открытия в Excel
+        io.BytesIO(output.encode('utf-8-sig')),
         mimetype='text/csv',
         as_attachment=True,
         download_name=filename

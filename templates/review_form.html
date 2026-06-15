@@ -15,7 +15,6 @@
     </div>
     <div class="mb-3">
         <label class="form-label">Текст рецензии (Markdown)</label>
-        <!-- Атрибут required УБРАН, чтобы браузер не блокировал скрытое поле -->
         <textarea name="text" id="reviewEditor" class="form-control" rows="5"></textarea>
     </div>
     <button type="submit" class="btn btn-primary">Сохранить</button>
@@ -25,10 +24,8 @@
 
 {% block scripts %}
 <script>
-    // Инициализируем редактор
     const reviewEditor = new EasyMDE({ element: document.getElementById('reviewEditor') });
     
-    // Магия: перед отправкой формы принудительно копируем текст из EasyMDE в скрытый textarea
     document.getElementById('reviewForm').addEventListener('submit', function() {
         reviewEditor.toTextArea();
     });

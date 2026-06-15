@@ -28,7 +28,6 @@
             {% endfor %}
         </tbody>
     </table>
-    <!-- Пагинация журнала (упрощенная) -->
     <nav>
         <ul class="pagination">
             {% if log_pagination.has_prev %}<li class="page-item"><a class="page-link" href="{{ url_for('stats', tab='log', page=log_pagination.prev_num) }}">Назад</a></li>{% endif %}
